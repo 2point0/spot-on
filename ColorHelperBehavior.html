@@ -1,0 +1,152 @@
+<script>
+  var piOver3 = Math.PI / 3,
+      rgb = function (r, g, b) {
+        return {r: r, g: g, b: b}
+      },
+      hashHexRx = rxColorDefinition = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
+
+  ColorHelperBehavior = {
+    rgb: rgb,
+
+    hsvToRgb: function (hsv) {
+      var h = hsv.h,
+          s = hsv.s,
+          v = hsv.v,
+          i, f, p, q, t
+
+      // achromatic (grey)
+      if (s == 0)
+        return rgb(v, v, v)
+
+      else {
+        h /= piOver3 // sector 0 to 5
+        i = Math.floor(h)
+        f = h - Math.floor(h) // fractional part of h
+        p = v * ( 1 - s )
+        q = v * ( 1 - s * f )
+        t = v * ( 1 - s * ( 1 - f ) )
+
+        switch (i) {
+          case 0:
+            return rgb(v, t, p)
+          case 1:
+            return rgb(q, v, p)
+          case 2:
+            return rgb(p, v, t)
+          case 3:
+            return rgb(p, q, v)
+          case 4:
+            return rgb(t, p, v)
+          // case 5:
+          default:
+            return rgb(v, p, q)
+        }
+      }
+    },
+
+    hsvToRgb255: function (hsv) {
+      var rgb = this.hsvToRgb(hsv)
+      return this.rgbToRgb255(rgb)
+    },
+
+    rgbToRgb255: function (rgb) {
+      return {
+        r: rgb.r * 255,
+        g: rgb.g * 255,
+        b: rgb.b * 255
+      }
+    },
+
+    rgb255ToHex: function (rgb255) {
+      var parts = ['#']
+      for (var key in rgb255) {
+        var h = this.toHexString(Math.floor(rgb255[key]))
+        parts.push(h)
+      }
+      return parts.join('')
+    },
+
+    toHexString: function (hexInt) {
+      var h = hexInt.toString(16)
+      if (h.length == 1)
+        h = '0' + h
+      return h
+    },
+
+    isHexColor: function (s) {
+      return hashHexRx.test(s)
+    },
+
+    hexToRgb255: function (hexColor) {
+      if (hexColor) {
+        var match = hashHexRx.exec(hexColor)
+        if (match) {
+          var cs = match[1].split(''),
+              L = cs.length
+          if (L == 3) {
+            cs[0] = cs[0] + cs[0]
+            cs[1] = cs[1] + cs[1]
+            cs[2] = cs[2] + cs[2]
+          } else {
+            cs[0] = cs[0] + cs[1]
+            cs[1] = cs[2] + cs[3]
+            cs[2] = cs[4] + cs[5]
+          }
+
+          return rgb(
+              parseInt(cs[0], 16),
+              parseInt(cs[1], 16),
+              parseInt(cs[2], 16)
+          )
+        }
+      }
+      return rgb(255, 255, 255)
+    },
+
+    normalizeRgb255: function (rgb255) {
+      var rgb = {}
+      for (var key in rgb255)
+        rgb[key] = rgb255[key] / 255
+      return rgb
+    },
+
+    /**
+     * http://www.cs.rit.edu/~ncs/color/t_convert.html#RGB%20to%20HSV%20&%20HSV%20to%20RGB
+     *
+     * @param rgb r, g, b are [0,1]
+     * @returns {{h: number, s: [0,1], v: [0,1]}}
+     */
+    rgbToHsv: function (rgb) {
+
+      var r = rgb.r,
+          g = rgb.g,
+          b = rgb.b,
+          min = Math.min(r, g, b),
+          max = Math.max(r, g, b),
+          h = 0,
+          s = 0,
+          v = max,
+          delta = max - min
+
+      if (max) {
+        s = delta / max
+
+        if (r == max)
+          h = ( g - b ) / delta		// between yellow & magenta
+        else if (g == max)
+          h = 2 + ( b - r ) / delta	// between cyan & yellow
+        else
+          h = 4 + ( r - g ) / delta	// between magenta & cyan
+        if (h < 0)
+          h += 2 * Math.PI
+        h *= Math.PI / 3
+      }
+      else {
+        // r = g = b = 0		// s = 0, v is undefined
+        s = 0
+        h = -1
+      }
+      return {h: h, s: s, v: v}
+    }
+  }
+</script>

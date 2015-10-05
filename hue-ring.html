@@ -1,0 +1,198 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<link rel="import" href="ColorHelperBehavior.html">
+<link rel="import" href="ImmediateCanvasBehavior.html">
+
+<dom-module id="hue-ring">
+
+  <template>
+    <canvas id="canvas"
+            on-click="_onClickCanvas"
+            on-mousemove="_onMouseMoveCanvas"
+            on-mouseout="_onMouseOutCanvas"></canvas>
+  </template>
+
+</dom-module>
+
+<script>
+
+  var twoPi = 2 * Math.PI
+
+  /**
+   * Ring gradient representing HSV hue
+   */
+  Polymer({
+
+    is: 'hue-ring',
+
+    behaviors: [ColorHelperBehavior, ImmediateCanvasBehavior],
+
+    properties: {
+      /**
+       * Outer radius of the ring.
+       *
+       * The inner radius will be half this value.
+       */
+      radius: {
+        type: Number,
+        value: 64,
+        observer: '_radiusChange',
+        reflectToAttribute: true
+      },
+
+      /**
+       * The background color (hex format) of the box containing the ring.
+       *
+       * Set actual colors not transparent.
+       */
+      backgroundColor: {
+        type: String,
+        value: '#fff',
+        reflectToAttribute: true,
+        observer: '_redrawCanvas'
+      }
+    },
+
+    ready: function () {
+      // Set default
+      this.value = 0
+    },
+
+    _radiusChange: function (newValue, oldValue) {
+      this.innerRadius = 0
+      this._redraw()
+    },
+
+    _getAngle: function (x, y) {
+      var angle = Math.atan2(y, x)
+      if (angle < 0)
+        angle += twoPi
+      return angle
+    },
+
+    _redrawCanvas: function () {
+      var radius = this.radius
+
+      if (!this.innerRadius)
+        this.innerRadius = radius / 2
+
+      var innerRadius = this.innerRadius,
+          diameter = radius * 2,
+          canvas = this.$.canvas,
+          context = canvas.getContext('2d')
+
+      canvas.width = diameter
+      canvas.height = diameter
+
+      // Add one to diameter so the center cuts the canvas into even halves
+      var length = diameter + 1,
+          innerRadiusSquared = innerRadius * innerRadius,
+          radiusSquared = radius * radius,
+      /*
+       * Creates the data array w/ length and height properties
+       * rather than only a new Uint8ClampedArray(lengthSquared * 4)
+       */
+          imageData = context.createImageData(length, length),
+          colorData = imageData.data,
+
+      // Each pixel has four color components
+          length4 = length * 4,
+
+          backgroundColor = this.backgroundColor
+      if (!backgroundColor)
+        backgroundColor = '#fff'
+      var backgroundRgb = this.hexToRgb255(backgroundColor),
+          backgroundR = backgroundRgb.r,
+          backgroundG = backgroundRgb.g,
+          backgroundB = backgroundRgb.b
+
+      // Iterate along columns
+      for (var y = 0; y < length; y++) {
+        var p = y * length4
+        // Iterate along rows
+        for (var x = 0; x < length; x++) {
+          var rX = x - radius,
+              rY = radius - y,
+              rSquared = rX * rX + rY * rY
+
+          // Inside and outside the ring, must set to white so redrawing with image won't have artifacts
+          if (rSquared < innerRadiusSquared ||
+              rSquared >= radiusSquared) {
+            colorData[p] = backgroundR
+            colorData[p + 1] = backgroundG
+            colorData[p + 2] = backgroundB
+          }
+          else {
+            var angle = this._getAngle(rX, rY),
+                rgb = this.hsvToRgb255({h: angle, s: 1, v: 1})
+
+            colorData[p] = rgb.r
+            colorData[p + 1] = rgb.g
+            colorData[p + 2] = rgb.b
+          }
+          colorData[p + 3] = 255
+
+          p += 4
+        }
+      }
+
+      context.putImageData(imageData, 0, 0)
+
+      var canvasImage = new Image()
+      canvasImage.src = canvas.toDataURL()
+      this.canvasImage = canvasImage
+    },
+
+    _computeValue: function (x, y) {
+      if (!(x || y))
+        return undefined
+
+      var radius = this.radius,
+          rX = x - radius,
+          rY = radius - y
+      return this._getAngle(rX, rY)
+    },
+
+    _drawSelection: function () {
+      // Don't draw if not ready
+      if (!this.selector)
+        return
+
+      var radius = this.radius,
+          innerRadius = this.innerRadius,
+          context = this.$.canvas.getContext('2d'),
+          radius1 = radius + 1,
+          value = this.immediateValue
+
+      context.save();
+      context.beginPath()
+      context.strokeStyle = this.selector.strokeStyle;
+      context.lineWidth = this.selector.lineWidth;
+      context.translate(radius1, radius1);
+      context.rotate(-value);
+      context.moveTo(innerRadius, 0);
+      context.lineTo(radius, 0);
+      context.stroke();
+      context.restore();
+
+      this.lastDrawnValue = value
+    },
+
+    _clearSelection: function () {
+      if (!this.canvasImage)
+        return
+
+      var canvasImage = this.canvasImage,
+          context = this.$.canvas.getContext('2d')
+
+      context.save();
+
+      // todo Be more efficient and only redraw the last selection (if too difficult, clip to quadrant/half)
+      context.drawImage(canvasImage, 0, 0)
+
+      context.restore();
+    }
+
+  })
+
+</script>

@@ -1,0 +1,89 @@
+<script>
+  ImmediateCanvasBehavior = {
+    properties: {
+      value: {
+        type: Number,
+        // Do not set default here or weird behavior occurs
+        notify: true,
+        reflectToAttribute: true,
+        observer: '_valueChange'
+      },
+
+      immediateValue: {
+        type: Number,
+        notify: true,
+        reflectToAttribute: true,
+        readOnly: true,
+        observer: '_immediateValueChange'
+      },
+
+      selector: {
+        type: Object,
+        value: {
+          strokeStyle: "#000",
+          lineWidth: 3
+        }
+      }
+    },
+
+    // Redraw the entire canvas
+    _redrawCanvas: function () {
+      throw new Error('abstract')
+    },
+
+    // Overdraw selection
+    _drawSelection: function () {
+      throw new Error('abstract')
+    },
+
+    /**
+     * Completely redraw the canvas and selection.
+     *
+     * This should only be called in response to size changes.
+     * The canvas should be cached as an image and used in future redraws.
+     *
+     * @protected
+     */
+    _redraw: function () {
+      this._redrawCanvas()
+      this._drawSelection()
+    },
+
+    _valueChange: function (newValue, oldValue) {
+      this._setImmediateValue(newValue)
+    },
+
+    // Clear selection overdraw
+    _clearSelection: function () {
+      throw new Error('abstract')
+    },
+
+    _immediateValueChange: function (newValue, oldValue) {
+      this._clearSelection()
+      this._drawSelection()
+    },
+
+    _computeValue: function (x, y) {
+      throw new Error('abstract')
+    },
+
+    _onMouseMoveCanvas: function (event) {
+      var value = this._computeValue(event.offsetX, event.offsetY)
+      if (value !== undefined && value != this.immediateValue) {
+        // This only triggers redraw if a change occurred
+        this._setImmediateValue(value)
+      }
+    },
+
+    _onClickCanvas: function (event) {
+      var value = this._computeValue(event.offsetX, event.offsetY)
+      if (value !== undefined)
+        this.value = value
+    },
+
+    _onMouseOutCanvas: function (event) {
+      if (this.immediateValue != this.value)
+        this._setImmediateValue(this.value)
+    }
+  }
+</script>

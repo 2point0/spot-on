@@ -1,0 +1,192 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<link rel="import" href="ColorHelperBehavior.html">
+
+<dom-module id="text-color-representation">
+
+  <template>
+    <div id="text">
+      <paper-input id="input" placeholder="Enter any type of color" on-change="_onColorInputChange"></paper-input>
+      <pre id="colorOutput"></pre>
+    </div>
+  </template>
+
+  <script>
+    /**
+     * Text input/output for transforming between color representations.
+     */
+    Polymer({
+      is: 'text-color-representation',
+
+      behaviors: [ColorHelperBehavior],
+
+      properties: {
+        /**
+         * Color representation currently set.
+         *
+         * h is in radians.
+         */
+        hsv: {
+          type: Object,
+          value: null,
+          notify: true,
+          readOnly: true
+        }
+      },
+
+      /**
+       * Sets the current color representation outputting transformation information
+       *
+       * @param {{h: Number, s: Number, v: Number}} hsv h is in radians
+       */
+      setHsv: function (hsv) {
+        this._updateOutput(JSON.stringify(hsv))
+        this.$.input.value = ''
+      },
+
+      _onColorInputChange: function (event) {
+        this._updateOutput(event.target.value)
+      },
+
+      _makeOutputText: function (rgb, rgb255, hsv) {
+        var toFixedRemoveTrailing = function (value, fixedLength) {
+              if (typeof value == 'string')
+              // Will be null if not numeric for parse
+                value = parseFloat(value)
+              return value ? value.toFixed(fixedLength).replace(/\.?0+$/, '') : ""
+            },
+            spaceSeparate = function (o, fixedLength) {
+              var parts = []
+              for (var key in o) {
+                var value = o[key]
+                if (fixedLength)
+                  value = toFixedRemoveTrailing(value, fixedLength)
+                parts.push(value)
+              }
+              return parts.join(' ')
+            },
+
+            hsvRadian = spaceSeparate(hsv, 3),
+            outputs = [
+              'hex ' + this.rgb255ToHex(rgb255),
+              'rgb ' + spaceSeparate(rgb, 3),
+              'rgb ' + spaceSeparate(rgb255, 3),
+              'hsv (radian) ' + hsvRadian,
+              'hsv (degree) ' + spaceSeparate({h: hsv.h * 180 / Math.PI, s: hsv.s, v: hsv.v}, 3)
+            ]
+        return outputs.join('\n')
+      },
+
+      _updateOutput: function (value) {
+        var s = '[invalid color value, must be rgb or space separated hsv]',
+            isHex = this.isHexColor(value),
+            colorData = null,
+            makeColorData = function (hsv, rgb, rgb255) {
+              return {hsv: hsv, rgb: rgb, rgb255: rgb255}
+            },
+            t = this,
+            extractJson = function () {
+              try {
+                var json = JSON.parse(value)
+                if (json) {
+                  var makeObjectFromKeys = function (o, keys) {
+                    var o2 = {}
+                    for (var i = 0, L = keys.length; i < L; i++) {
+                      var k = keys[i]
+                      if (k in o)
+                        o2[k] = o[k]
+                      else
+                        return null
+                    }
+                    return o2
+                  }
+
+                  var hsv = makeObjectFromKeys(json, ['h', 's', 'v'])
+                  if (hsv) {
+                    var rgb = t.hsvToRgb(hsv),
+                        rgb255 = t.rgbToRgb255(rgb)
+//                    console.log(hsv, rgb, rgb255)
+                    return makeColorData(hsv, rgb, rgb255)
+                  } else {
+                    rgb = makeObjectFromKeys(json, ['r', 'g', 'b'])
+                    return makeColorData(t.rgbToHsv(rgb), rgb, t.rgbToRgb255(rgb))
+                  }
+                }
+              } catch (e) {
+              }
+              return null
+            },
+            extractText = function () {
+              // Infer further if possible
+              var spacedParts = value.split(' ')
+              if (spacedParts.length == 3) {
+                var numberParts = [],
+                    integerRx = /^\d+$/,
+                    isAllInteger = true
+                for (var i = 0, L = spacedParts.length; i < L; i++) {
+                  var part = spacedParts[i]
+                  if (!isNaN(part)) {
+                    if (integerRx.test(part))
+                      numberParts.push(parseInt(part))
+                    else {
+                      numberParts.push(parseFloat(part))
+                      isAllInteger = false
+                    }
+                  }
+                }
+
+                // All numeric
+                if (numberParts.length == spacedParts.length) {
+                  var is8Bit = isAllInteger
+                  for (var i = 0, L = numberParts.length; i < L; i++) {
+                    var part = numberParts[i]
+                    is8Bit &= part >= 0 && part < 256
+                  }
+                  var hsv = null
+                  if (is8Bit) {
+                    rgb255 = {r: numberParts[0], g: numberParts[1], b: numberParts[2]}
+                    rgb = t.normalizeRgb255(rgb255)
+                    hsv = t.rgbToHsv(rgb)
+                  } else {
+                    hsv = {h: numberParts[0], s: numberParts[1], v: numberParts[2]}
+                    rgb = t.hsvToRgb(hsv)
+                    rgb255 = t.rgbToRgb255(rgb)
+                  }
+                  if (hsv)
+                    return makeColorData(hsv, rgb, rgb255)
+                }
+              }
+            }
+
+        // todo Handle rgba() also (before splitting by spaces)
+
+        if (isHex) {
+          var rgb255 = this.hexToRgb255(value),
+              rgb = this.normalizeRgb255(rgb255),
+              hsv = this.rgbToHsv(rgb)
+          colorData = makeColorData(hsv, rgb, rgb255)
+
+        }
+        if (!colorData)
+          colorData = extractJson()
+
+        if (!colorData)
+          colorData = extractText()
+
+        if (colorData) {
+          s = value + '\n' +
+              this._makeOutputText(colorData.rgb, colorData.rgb255, colorData.hsv)
+
+          var hsv = colorData.hsv
+          this._setHsv({h: hsv.h, s: hsv.s, v: hsv.v})
+        }
+
+        this._setOutput(s)
+      },
+
+      _setOutput: function (s) {
+        Polymer.dom(this.$.colorOutput).textContent = s
+      }
+    })
+  </script>
+</dom-module>

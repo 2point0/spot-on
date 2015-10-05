@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>spot-on Demo</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../spot-on.html">
+  <style>
+    .container {
+      margin: 0 auto;
+      max-width: 1200px;
+    }
+  </style>
+</head>
+<body unresolved>
+
+<div class="container">
+  <p>An example of <code>&lt;spot-on&gt;</code>:</p>
+
+  <h3>Size on bind</h3>
+  <template id="t" is="dom-bind">
+    <style>
+      #spotOn {
+        width: 300px
+      }
+    </style>
+    <spot-on id="spotOn"></spot-on>
+  </template>
+
+  <h3>Enable text input (see underneath)</h3>
+  <spot-on show-text></spot-on>
+</div>
+
+</body>
+<script>
+  var t = document.querySelector('#t');
+
+  t.addEventListener('dom-change', function () {
+    var spotOn = this.$.spotOn
+    // todo Deep path changes don't work when setting externally, why?
+    spotOn.saturation = 0.9
+    spotOn.value = 0.75
+    spotOn.ringRadius = 96
+    spotOn.barSize = {
+      width: 192,
+      height: 24
+    }
+  });
+</script>
+</html>

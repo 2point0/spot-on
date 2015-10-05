@@ -1,0 +1,197 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<link rel="import" href="ColorHelperBehavior.html">
+<link rel="import" href="ImmediateCanvasBehavior.html">
+
+<dom-module id="saturation-bar">
+
+  <template>
+    <canvas id="canvas"
+            on-click="_onClickCanvas"
+            on-mousemove="_onMouseMoveCanvas"
+            on-mouseout="_onMouseOutCanvas"></canvas>
+  </template>
+
+</dom-module>
+
+<script>
+  // todo Allow for setting direction of bar (ltr, rtl, ttb, btt)
+
+  /**
+   * Rectangle gradient representing HSV saturation
+   */
+  Polymer({
+
+    is: 'saturation-bar',
+
+    behaviors: [ColorHelperBehavior, ImmediateCanvasBehavior],
+
+    properties: {
+      /**
+       * HSV hue (in radians) used when rendering the rectangle gradient
+       */
+      hue: {
+        type: Number,
+        value: 0,
+        observer: '_redraw',
+        reflectToAttribute: true
+      },
+
+      /**
+       * HSV value used when rendering the rectangle gradient
+       */
+      colorValue: {
+        type: Number,
+        value: 1,
+        observer: '_redraw',
+        reflectToAttribute: true
+      },
+
+      /**
+       * Size of the bar to draw
+       */
+      size: {
+        type: Object,
+        value: {
+          width: 64,
+          height: 16
+        },
+        observer: '_redraw'
+      }
+    },
+
+    ready: function () {
+      // Set default
+      this.value = 0.5
+    },
+
+    _getSnapWidth: function () {
+      return this.size.width > 50 ? 7 : Math.ceil(this.size.width / 10)
+    },
+
+    _redrawCanvas: function () {
+      // For some reason, objects don't get created until after ready
+      if (!this.size)
+        return
+
+      var canvas = this.$.canvas,
+          context = canvas.getContext('2d'),
+          width = this.size.width,
+          height = this.size.height
+      canvas.width = width
+      canvas.height = height
+
+      var imageData = context.createImageData(width, height),
+          colorData = imageData.data,
+
+      // Each pixel has four color components
+          length4 = width * 4,
+          width_1 = width - 1,
+
+          hue = this.hue,
+          cValue = this.colorValue,
+
+          xStart = this._getSnapWidth(),
+          xEnd = width - xStart
+
+      for (var x = xStart; x < xEnd; x++) {
+        var px = x * 4,
+            s = x / width_1,
+            rgb = this.hsvToRgb255({h: hue, s: s, v: cValue}),
+            r = rgb.r,
+            g = rgb.g,
+            b = rgb.b
+
+        for (var y = 0; y < height; y++) {
+          var py = y * length4,
+              p = px + py
+          colorData[p] = r
+          colorData[p + 1] = g
+          colorData[p + 2] = b
+          colorData[p + 3] = 255
+        }
+      }
+
+      context.putImageData(imageData, 0, 0)
+
+      var canvasImage = new Image()
+      canvasImage.src = canvas.toDataURL()
+      this.canvasImage = canvasImage
+    },
+
+    _getWidths: function () {
+      var width = this.$.canvas.width,
+          snapWidth = this._getSnapWidth(),
+          realWidth = width - 2 * snapWidth
+      return {
+        width: width,
+        snap: snapWidth,
+        real: realWidth
+      }
+    },
+
+    _computeValue: function (x, y) {
+      var widths = this._getWidths(),
+          value = parseFloat(((x - widths.snap) / widths.real).toFixed(3))
+      return value < 0 ? 0 : value > 1 ? 1 : value
+    },
+
+    _drawSelection: function () {
+      // Some calls come in too early
+      if (!this.selector || this.immediateValue === undefined)
+        return
+
+      // Invalid input
+      if (isNaN(this.immediateValue) || this.immediateValue === '')
+        return
+
+      var canvas = this.$.canvas,
+          context = canvas.getContext('2d'),
+          value = this.immediateValue,
+          widths = this._getWidths(),
+          x = value * widths.real + widths.snap,
+          lineWidth = this.selector.lineWidth,
+          halfLineWidth = lineWidth / 2
+
+      // Don't allow x to draw on snap boundaries since clearing in these areas will require extra code
+      if (x < widths.snap + halfLineWidth)
+        x = widths.snap + halfLineWidth
+      else if (x > widths.snap + widths.real - halfLineWidth)
+        x = widths.snap + widths.real - halfLineWidth
+
+      context.save();
+      context.beginPath()
+      context.strokeStyle = this.selector.strokeStyle;
+      context.lineWidth = this.selector.lineWidth;
+      context.translate(x, 0);
+      context.moveTo(0, 0);
+      context.lineTo(0, canvas.height);
+      context.stroke();
+      context.restore();
+
+      this.lastDrawnValue = value
+    },
+
+    _clearSelection: function () {
+      if (this.lastDrawnValue || this.lastDrawnValue === 0) {
+        var canvasImage = this.canvasImage,
+            context = this.$.canvas.getContext('2d'),
+            height = canvasImage.height,
+        // Not exact, close enough is fine
+            clipWidth = this.selector.lineWidth * 2,
+            widths = this._getWidths(),
+            clipX = widths.snap + this.lastDrawnValue * widths.real - clipWidth / 2
+
+        context.save();
+
+        context.drawImage(canvasImage, clipX, 0, clipWidth, height, clipX, 0, clipWidth, height)
+
+        context.restore();
+
+        this.lastDrawnValue = null
+      }
+    }
+
+  })
+
+</script>
