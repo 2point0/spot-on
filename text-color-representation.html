@@ -53,7 +53,7 @@
               if (typeof value == 'string')
               // Will be null if not numeric for parse
                 value = parseFloat(value)
-              return value ? value.toFixed(fixedLength).replace(/\.?0+$/, '') : ""
+              return value ? value.toFixed(fixedLength).replace(/\.?0+$/, '') : value === 0 ? 0 : ""
             },
             spaceSeparate = function (o, fixedLength) {
               var parts = []
@@ -78,7 +78,7 @@
       },
 
       _updateOutput: function (value) {
-        var s = '[invalid color value, must be rgb or space separated hsv]',
+        var s = '[invalid color value, specify hex rgb or space separated hsv]',
             isHex = this.isHexColor(value),
             colorData = null,
             makeColorData = function (hsv, rgb, rgb255) {

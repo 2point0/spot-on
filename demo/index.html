@@ -18,27 +18,28 @@
 <div class="container">
   <p>An example of <code>&lt;spot-on&gt;</code>:</p>
 
-  <h3>Size on bind</h3>
+  <h3>Element is set and sized on bind (inspect code)</h3>
   <template id="t" is="dom-bind">
     <style>
       #spotOn {
         width: 300px
       }
     </style>
-    <spot-on id="spotOn"></spot-on>
+    <spot-on id="spotOn" ring-background="#fafafa"></spot-on>
   </template>
 
-  <h3>Enable text input (see underneath)</h3>
-  <spot-on show-text></spot-on>
+  <h3>Text input enabled (at bottom)</h3>
+  <spot-on ring-background="#fafafa" show-text></spot-on>
 </div>
 
 </body>
 <script>
   var t = document.querySelector('#t');
-
   t.addEventListener('dom-change', function () {
+    // Set default values and sizes`
     var spotOn = this.$.spotOn
-    // todo Deep path changes don't work when setting externally, why?
+    // todo Rewrite so won't have to expose custom method like this, direct assignment is a much better pattern
+    spotOn.setHueDegree(135)
     spotOn.saturation = 0.9
     spotOn.value = 0.75
     spotOn.ringRadius = 96

@@ -109,7 +109,7 @@ Example:
                         editable></paper-slider>
         </td>
       </tr>
-      <tr id="a" hidden="{{!showAlpha}}">
+      <tr id="a" hidden$="[[!showAlpha]]">
         <td>{{title.alpha}}</td>
         <td>
           <paper-slider id="alphaSlider"
@@ -287,6 +287,17 @@ Example:
       else
         this.set('hue.radian', parseFloat((this.hue.degree / oneEightyOverPi).toFixed(4)))
     },
+
+    /**
+     * Sets the hue value to the specified degrees
+     *
+     * @param {Number} d
+     */
+    setHueDegree: function (d) {
+      // Deep path observation only works when set is used, direct assignment won't work
+      this.set('hue.degree', d)
+    },
+
     _hueChange: function (changes) {
       var parts = changes.path.split('.')
       if (parts.length > 1) {
