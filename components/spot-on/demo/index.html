@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>spot-on Demo</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../iron-flex-layout/classes/iron-flex-layout.html">
+  <link rel="import" href="../spot-on.html">
+  <style>
+    .container {
+      margin: 0 auto;
+      max-width: 1200px;
+    }
+
+    #grid > *:not(:first-child) {
+      margin-left: 16px;
+    }
+  </style>
+</head>
+<body unresolved>
+
+<div class="container">
+  <p>An example of <code>&lt;spot-on&gt;</code>:</p>
+
+  <div id="grid" class="horizontal layout">
+    <div>
+      <h3>Element is set and sized on bind (inspect code)</h3>
+      <template id="t" is="dom-bind">
+        <style>
+          #spotOn {
+            width: 300px
+          }
+        </style>
+        <spot-on id="spotOn"></spot-on>
+      </template>
+    </div>
+
+    <div>
+      <h3>Text input/output (below)</h3>
+      <spot-on show-text></spot-on>
+    </div>
+  </div>
+</div>
+
+</body>
+<script>
+  var t = document.querySelector('#t');
+  t.addEventListener('dom-change', function () {
+    // Set default values and sizes`
+    var spotOn = this.$.spotOn
+    // todo Rewrite so won't have to expose custom method like this, direct assignment is a much better pattern
+    spotOn.setHueDegree(135)
+    spotOn.saturation = 0.9
+    spotOn.value = 0.75
+    spotOn.ringRadius = 96
+    spotOn.barSize = {
+      width: 192,
+      height: 24
+    }
+  });
+</script>
+</html>

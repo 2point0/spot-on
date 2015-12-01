@@ -1,0 +1,29 @@
+{
+  "name": "spot-on",
+  "version": "1.0.1",
+  "authors": [
+    "qui <qui.after@gmail.com>"
+  ],
+  "description": "HSV picker.",
+  "keywords": [
+    "web-component",
+    "polymer",
+    "color"
+  ],
+  "main": "spot-on.html",
+  "license": "http://polymer.github.io/LICENSE.txt",
+  "homepage": "https://github.com/2point0/spot-on/",
+  "ignore": [
+    "/.*",
+    "/test/"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#^1.0"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0",
+    "paper-input": "PolymerElements/paper-input#^1.0",
+    "paper-slider": "PolymerElements/paper-slider#^1.0",
+    "web-component-tester": "*"
+  }
+}
