@@ -73,23 +73,20 @@
         var innerRadius = this.innerRadius,
             diameter = radius * 2,
             canvas = this.$.canvas,
-            context = canvas.getContext('2d')
+            context = canvas.getContext('2d'),
 
         // Add one to diameter so the center cuts the canvas into even halves
-        var length = diameter + 1,
+            length = diameter + 1,
             innerRadiusSquared = innerRadius * innerRadius,
-            radiusSquared = radius * radius,
-
-            image = new Image(length, length);
+            radiusSquared = radius * radius
         canvas.width = length
         canvas.height = length
-        context.drawImage(image, 0, 0)
 
         /*
          * Creates the data array w/ length and height properties
          * rather than only a new Uint8ClampedArray(lengthSquared * 4)
          */
-        var imageData = context.getImageData(0, 0, length, length),
+        var imageData = context.createImageData(length, length),
             colorData = imageData.data,
 
         // Each pixel has four color components

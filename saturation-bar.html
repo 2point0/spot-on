@@ -17,7 +17,6 @@
      * Gradient rectangle representing HSV saturation
      */
     Polymer({
-
       is: 'saturation-bar',
 
       behaviors: [ColorHelperBehavior, ImmediateCanvasBehavior],
@@ -48,9 +47,11 @@
          */
         size: {
           type: Object,
-          value: {
-            width: 64,
-            height: 16
+          value: function () {
+            return {
+              width: 64,
+              height: 16
+            }
           },
           observer: '_redraw'
         }

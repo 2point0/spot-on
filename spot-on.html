@@ -162,11 +162,13 @@ Example:
          */
         title: {
           type: Object,
-          value: {
-            hue: 'H',
-            saturation: 'S',
-            value: 'V',
-            alpha: 'A'
+          value: function () {
+            return {
+              hue: 'H',
+              saturation: 'S',
+              value: 'V',
+              alpha: 'A'
+            }
           }
         },
 
@@ -175,9 +177,11 @@ Example:
          */
         swatchProperty: {
           type: Object,
-          value: {
-            color: '#000',
-            height: 48
+          value: function () {
+            return {
+              color: '#000',
+              height: 48
+            }
           }
         },
 
@@ -194,9 +198,11 @@ Example:
          */
         barSize: {
           type: Object,
-          value: {
-            width: 128,
-            height: 32
+          value: function () {
+            return {
+              width: 128,
+              height: 32
+            }
           }
         },
 
@@ -205,11 +211,13 @@ Example:
          */
         color: {
           type: Object,
-          value: {
-            hsv: {h: 0, s: 0, v: 0},
-            rgb: {r: 0, g: 0, b: 0},
-            hex: '#000',
-            alpha: 1
+          value: function () {
+            return {
+              hsv: {h: 0, s: 0, v: 0},
+              rgb: {r: 0, g: 0, b: 0},
+              hex: '#000',
+              alpha: 1
+            }
           },
           readOnly: true
         },
@@ -219,9 +227,11 @@ Example:
          */
         hue: {
           type: Object,
-          value: {
-            radian: 0,
-            degree: 0
+          value: function () {
+            return {
+              radian: 0,
+              degree: 0
+            }
           }
         },
         /**
@@ -251,9 +261,11 @@ Example:
          */
         immediateValue: {
           type: Object,
-          value: {
-            hue: 0,
-            saturation: 0
+          value: function () {
+            return {
+              hue: 0,
+              saturation: 0
+            }
           }
         }
       },
