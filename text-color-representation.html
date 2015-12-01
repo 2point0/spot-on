@@ -3,7 +3,6 @@
 <link rel="import" href="ColorHelperBehavior.html">
 
 <dom-module id="text-color-representation">
-
   <template>
     <div id="text">
       <paper-input id="input" placeholder="Enter any type of color" on-change="_onColorInputChange"></paper-input>
@@ -24,7 +23,9 @@
         /**
          * Color representation currently set.
          *
-         * h is in radians.
+         * h is in radians, s and v are [0,1].
+         *
+         * @type {{h: number, s: number, v: number}}
          */
         hsv: {
           type: Object,
@@ -37,17 +38,24 @@
       /**
        * Sets the current color representation outputting transformation information
        *
-       * @param {{h: Number, s: Number, v: Number}} hsv h is in radians
+       * @param {{h: number, s: number, v: number}} hsv h is in radians
        */
       setHsv: function (hsv) {
         this._updateOutput(JSON.stringify(hsv))
         this.$.input.value = ''
       },
 
+      // Reacts to text input
       _onColorInputChange: function (event) {
         this._updateOutput(event.target.value)
       },
 
+      /**
+       * @param {{r: number, g: number, b: number}} rgb r, g, and b are [0,1]
+       * @param {{r: number, g: number, b: number}} rgb255 r, g, and b are [0,255]
+       * @param {{h: number, s: number, v: number}} hsv h is radian, s and v are [0,1]
+       * @return {string} structured text output on the color information passed in
+       */
       _makeOutputText: function (rgb, rgb255, hsv) {
         var toFixedRemoveTrailing = function (value, fixedLength) {
               if (typeof value == 'string')
@@ -77,6 +85,13 @@
         return outputs.join('\n')
       },
 
+      /**
+       * Processes text extracting color information if possible.
+       *
+       * Sets state and updates the output with the information if successful.
+       *
+       * @param {string} value
+       */
       _updateOutput: function (value) {
         var s = '[invalid color value, specify hex rgb or space separated hsv]',
             isHex = this.isHexColor(value),
@@ -158,7 +173,7 @@
               }
             }
 
-        // todo Handle rgba() also (before splitting by spaces)
+        // todo Handle rgba() (before splitting by spaces)
 
         if (isHex) {
           var rgb255 = this.hexToRgb255(value),
@@ -184,6 +199,7 @@
         this._setOutput(s)
       },
 
+      // Sets output text
       _setOutput: function (s) {
         Polymer.dom(this.$.colorOutput).textContent = s
       }

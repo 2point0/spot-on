@@ -1,8 +1,8 @@
 <link rel="import" href="../polymer/polymer.html">
 
 <link rel="import" href="../paper-input/paper-input.html">
-<link rel="import" href="../paper-slider/paper-slider.html">
 <link rel="import" href="../paper-input/paper-textarea.html">
+<link rel="import" href="../paper-slider/paper-slider.html">
 
 <link rel="import" href="ColorHelperBehavior.html">
 <link rel="import" href="hue-ring.html">
@@ -24,7 +24,6 @@ Example:
 @hero hero.svg
 -->
 <dom-module id="spot-on">
-
   <style>
     :host {
       display: inline-block;
@@ -55,11 +54,9 @@ Example:
     #v td #valueSlider {
       width: 100%;
     }
-
   </style>
 
   <template>
-
     <table id="colorWheel">
       <tr>
         <td></td>
@@ -72,8 +69,7 @@ Example:
         <td>
           <hue-ring value="{{hue.radian}}"
                     immediate-value="{{immediateValue.hue}}"
-                    radius="[[ringRadius]]"
-                    background-color="{{ringBackground}}"></hue-ring>
+                    radius="[[ringRadius]]"></hue-ring>
           <paper-input id="hInput"
                        value="{{hue.degree}}"
                        prevent-invalid-input
@@ -130,262 +126,261 @@ Example:
         </td>
       </tr>
     </table>
-
   </template>
 
-</dom-module>
+  <script>
+    var oneEightyOverPi = 180 / Math.PI
 
-<script>
-  var oneEightyOverPi = 180 / Math.PI
+    Polymer({
+      is: 'spot-on',
 
-  Polymer({
+      behaviors: [ColorHelperBehavior],
 
-    is: 'spot-on',
+      properties: {
 
-    behaviors: [ColorHelperBehavior],
-
-    properties: {
-
-      // todo Wire up alpha
-      /**
-       * Attribute flag to show alpha component
-       */
-      showAlpha: {
-        type: Boolean,
-        value: false,
-        reflectToAttribute: true
-      },
-
-      /**
-       * Attribute flag to show color text input/output
-       */
-      showText: {
-        type: Boolean,
-        value: false,
-        reflectToAttribute: true
-      },
-
-      /**
-       * Titles shown next to the color components
-       */
-      title: {
-        type: Object,
-        value: {
-          hue: 'H',
-          saturation: 'S',
-          value: 'V',
-          alpha: 'A'
-        }
-      },
-
-      /**
-       * CSS styles set on the swatch
-       */
-      swatchProperty: {
-        type: Object,
-        value: {
-          color: '#000',
-          height: 48
-        }
-      },
-
-      /**
-       * Outer radius of the hue ring
-       */
-      ringRadius: {
-        type: Number,
-        value: 64
-      },
-
-      /**
-       * Background color of the hue ring
-       */
-      ringBackground: {
-        type: String,
-        value: '#fff'
-      },
-
-      /**
-       * Size of the saturation bar
-       */
-      barSize: {
-        type: Object,
-        value: {
-          width: 128,
-          height: 32
-        }
-      },
-
-      /**
-       * Current color value assumed by this component
-       */
-      color: {
-        type: Object,
-        value: {
-          hsv: {h: 0, s: 0, v: 0},
-          rgb: {r: 0, g: 0, b: 0},
-          hex: '#000',
-          alpha: 1
+        // todo Wire up alpha
+        /**
+         * Attribute flag to show alpha component
+         */
+        showAlpha: {
+          type: Boolean,
+          value: false,
+          reflectToAttribute: true
         },
-        readOnly: true
-      },
 
-      /**
-       * HSV hue component of the current color value
-       */
-      hue: {
-        type: Object,
-        value: {
-          radian: 0,
-          degree: 0
-        }
-      },
-      /**
-       * HSV saturation component of the current color value
-       */
-      saturation: {
-        type: Number,
-        value: .5
-      },
-      /**
-       * HSV value component of the current color value
-       */
-      value: {
-        type: Number,
-        value: 1
-      },
-      /**
-       * Alpha component of the current color value
-       */
-      alpha: {
-        type: Number,
-        value: 1
-      },
+        /**
+         * Attribute flag to show color text input/output
+         */
+        showText: {
+          type: Boolean,
+          value: false,
+          reflectToAttribute: true
+        },
 
-      /**
-       * Used for temporarily updating visuals, should not be modified externally
-       */
-      immediateValue: {
-        type: Object,
-        value: {
-          hue: 0,
-          saturation: 0
-        }
-      }
-    },
-
-    observers: [
-      '_hueChange(hue.*)',
-      '_colorChange(hue.radian,saturation,value,alpha)',
-      '_immediateValueChange(immediateValue.*)',
-      '_swatchPropertyChange(swatchProperty.*)'
-    ],
-
-    _setHue: function (hueSubType) {
-      if (hueSubType == 'd')
-        this.set('hue.degree', parseFloat((this.hue.radian * oneEightyOverPi).toFixed(2)))
-      else
-        this.set('hue.radian', parseFloat((this.hue.degree / oneEightyOverPi).toFixed(4)))
-    },
-
-    /**
-     * Sets the hue value to the specified degrees
-     *
-     * @param {Number} d
-     */
-    setHueDegree: function (d) {
-      // Deep path observation only works when set is used, direct assignment won't work
-      this.set('hue.degree', d)
-    },
-
-    _hueChange: function (changes) {
-      var parts = changes.path.split('.')
-      if (parts.length > 1) {
-        if (parts[1] == 'radian') {
-          // Prevents adjusting input value during input
-          if (!this.$.hInput.focused)
-            this._setHue('d')
-        } else
-          this._setHue('r')
-      } else
-      // Initial
-        this._setHue('d')
-    },
-
-    _colorChange: function () {
-      var hsv = {h: this.hue.radian, s: this.saturation, v: this.value},
-          rgb = this.hsvToRgb255(hsv),
-          hex = this.rgb255ToHex(rgb),
-          a = this.alpha
-
-      this._setColor({
-        hsv: hsv,
-        rgb: rgb,
-        hex: hex,
-        alpha: a
-      })
-
-      this.$.textColorRepresentation.setHsv(this._copy(hsv))
-
-      this._setSwatchColor(hex, a)
-    },
-
-    _copy: function (o) {
-      var c = {}
-      for (var key in o)
-        c[key] = o[key]
-      return c
-    },
-
-    _immediateValueChange: function (changes) {
-      this._setSwatchColor()
-    },
-
-    _setSwatchColor: function (hex, alpha) {
-      if (!hex) {
-        var iv = this.immediateValue,
-            hsv = {h: iv.hue, s: iv.saturation, v: this.$.valueSlider.immediateValue},
-            rgb = this.hsvToRgb255(hsv)
-        hex = this.rgb255ToHex(rgb)
-      }
-      if (!alpha)
-        alpha = this.$.alphaSlider.immediateValue
-
-      this.set('swatchProperty.color', hex)
-      // todo Set alpha properly if not opaque
-    },
-
-    _swatchPropertyChange: function (changes) {
-      var property = this.swatchProperty,
-          styles = ['background-color:' + property.color],
-          stylePx = function (name, value) {
-            return name + ':' + value + 'px'
+        /**
+         * Titles shown next to the color components
+         */
+        title: {
+          type: Object,
+          value: {
+            hue: 'H',
+            saturation: 'S',
+            value: 'V',
+            alpha: 'A'
           }
+        },
 
-      if (property.size) {
-        styles.push(stylePx('width', property.size))
-        styles.push(stylePx('height', property.size))
-      } else if (property.width)
-        styles.push(stylePx('width', property.width))
-      else if (property.height)
-        styles.push(stylePx('height', property.height))
+        /**
+         * CSS styles set on the swatch
+         */
+        swatchProperty: {
+          type: Object,
+          value: {
+            color: '#000',
+            height: 48
+          }
+        },
 
-      this.swatchStyle = styles.join(';')
-    },
+        /**
+         * Outer radius of the hue ring
+         */
+        ringRadius: {
+          type: Number,
+          value: 64
+        },
 
-    _textColorRepresentationChange: function (event, detail) {
-      if (this.color && detail.value) {
-        var hsv = this.color.hsv,
-            nHsv = detail.value
-        if (hsv.h != nHsv.h)
-        // https://www.polymer-project.org/1.0/docs/devguide/properties.html#observing-path-changes
-          this.set('hue.radian', nHsv.h)
-        if (hsv.s != nHsv.s)
-          this.saturation = nHsv.s
-        if (hsv.v != nHsv.v)
-          this.value = nHsv.v
+        /**
+         * Size of the saturation bar
+         */
+        barSize: {
+          type: Object,
+          value: {
+            width: 128,
+            height: 32
+          }
+        },
+
+        /**
+         * Current color value assumed by this component
+         */
+        color: {
+          type: Object,
+          value: {
+            hsv: {h: 0, s: 0, v: 0},
+            rgb: {r: 0, g: 0, b: 0},
+            hex: '#000',
+            alpha: 1
+          },
+          readOnly: true
+        },
+
+        /**
+         * HSV hue component of the current color value
+         */
+        hue: {
+          type: Object,
+          value: {
+            radian: 0,
+            degree: 0
+          }
+        },
+        /**
+         * HSV saturation component of the current color value
+         */
+        saturation: {
+          type: Number,
+          value: .5
+        },
+        /**
+         * HSV value component of the current color value
+         */
+        value: {
+          type: Number,
+          value: 1
+        },
+        /**
+         * Alpha component of the current color value
+         */
+        alpha: {
+          type: Number,
+          value: 1
+        },
+
+        /**
+         * Used for temporarily updating visuals, should not be modified externally
+         */
+        immediateValue: {
+          type: Object,
+          value: {
+            hue: 0,
+            saturation: 0
+          }
+        }
+      },
+
+      observers: [
+        '_hueChange(hue.*)',
+        '_colorChange(hue.radian,saturation,value,alpha)',
+        '_immediateValueChange(immediateValue.*)',
+        '_swatchPropertyChange(swatchProperty.*)'
+      ],
+
+      /**
+       * Sets a single property of the hue property
+       *
+       * @param {string} hueSubType 'd'|'r'
+       */
+      _setHue: function (hueSubType) {
+        if (hueSubType == 'd')
+          this.set('hue.degree', parseFloat((this.hue.radian * oneEightyOverPi).toFixed(2)))
+        else
+          this.set('hue.radian', parseFloat((this.hue.degree / oneEightyOverPi).toFixed(4)))
+      },
+
+      /**
+       * Sets the hue value to the specified degrees
+       *
+       * @param {number} d
+       */
+      setHueDegree: function (d) {
+        // Deep path observation only works when set is used, direct assignment won't work
+        this.set('hue.degree', d)
+      },
+
+      // Reacts to hue change updating the other component of the hue (radian or degree)
+      _hueChange: function (changes) {
+        var parts = changes.path.split('.')
+        if (parts.length > 1) {
+          if (parts[1] == 'radian') {
+            // Prevents adjusting input value during input
+            if (!this.$.hInput.focused)
+              this._setHue('d')
+          } else
+            this._setHue('r')
+        } else
+        // Initial
+          this._setHue('d')
+      },
+
+      _colorChange: function () {
+        var hsv = {h: this.hue.radian, s: this.saturation, v: this.value},
+            rgb = this.hsvToRgb255(hsv),
+            hex = this.rgb255ToHex(rgb),
+            a = this.alpha
+
+        this._setColor({
+          hsv: hsv,
+          rgb: rgb,
+          hex: hex,
+          alpha: a
+        })
+
+        this.$.textColorRepresentation.setHsv(this._copy(hsv))
+
+        this._setSwatchColor(hex, a)
+      },
+
+      /**
+       * @param {{}} o
+       * @returns {{}} shallow copy of o
+       */
+      _copy: function (o) {
+        var c = {}
+        for (var key in o)
+          c[key] = o[key]
+        return c
+      },
+
+      _immediateValueChange: function () {
+        this._setSwatchColor()
+      },
+
+      // Sets the swatch color from arguments
+      _setSwatchColor: function (hex, alpha) {
+        if (!hex) {
+          var iv = this.immediateValue,
+              hsv = {h: iv.hue, s: iv.saturation, v: this.$.valueSlider.immediateValue},
+              rgb = this.hsvToRgb255(hsv)
+          hex = this.rgb255ToHex(rgb)
+        }
+        if (!alpha)
+          alpha = this.$.alphaSlider.immediateValue
+
+        this.set('swatchProperty.color', hex)
+        // todo Set alpha properly if not opaque
+      },
+
+      _swatchPropertyChange: function (changes) {
+        var property = this.swatchProperty,
+            styles = ['background-color:' + property.color],
+            stylePx = function (name, value) {
+              return name + ':' + value + 'px'
+            }
+
+        if (property.size) {
+          styles.push(stylePx('width', property.size))
+          styles.push(stylePx('height', property.size))
+        } else if (property.width)
+          styles.push(stylePx('width', property.width))
+        else if (property.height)
+          styles.push(stylePx('height', property.height))
+
+        this.swatchStyle = styles.join(';')
+      },
+
+      _textColorRepresentationChange: function (event, detail) {
+        if (this.color && detail.value) {
+          var hsv = this.color.hsv,
+              nHsv = detail.value
+          if (hsv.h != nHsv.h)
+          // https://www.polymer-project.org/1.0/docs/devguide/properties.html#observing-path-changes
+            this.set('hue.radian', nHsv.h)
+          if (hsv.s != nHsv.s)
+            this.saturation = nHsv.s
+          if (hsv.v != nHsv.v)
+            this.value = nHsv.v
+        }
       }
-    }
-  })
-
-</script>
+    })
+  </script>
+</dom-module>

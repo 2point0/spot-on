@@ -1,6 +1,12 @@
 <script>
+  /**
+   * Behavior for elements rendering with and accepting input from a canvas
+   */
   ImmediateCanvasBehavior = {
     properties: {
+      /**
+       * The value represented and output by the canvas.
+       */
       value: {
         type: Number,
         // Do not set default here or weird behavior occurs
@@ -9,6 +15,10 @@
         observer: '_valueChange'
       },
 
+      /**
+       * A value representing a pending selection.
+       * It is likely used when this element is in focus and is cleared when out of focus.
+       */
       immediateValue: {
         type: Number,
         notify: true,
@@ -17,6 +27,9 @@
         observer: '_immediateValueChange'
       },
 
+      /**
+       * Properties for rendering the selector
+       */
       selector: {
         type: Object,
         value: {
@@ -28,45 +41,64 @@
 
     // Redraw the entire canvas
     _redrawCanvas: function () {
-      throw new Error('abstract')
+      throw new Error('abstract');
     },
 
-    // Overdraw selection
+    // Render the current selection
     _drawSelection: function () {
-      throw new Error('abstract')
+      throw new Error('abstract');
     },
 
     /**
      * Completely redraw the canvas and selection.
      *
      * This should only be called in response to size changes.
-     * The canvas should be cached as an image and used in future redraws.
-     *
-     * @protected
+     * The canvas should be cached as an image and used in future redraws not from a change in size.
      */
     _redraw: function () {
-      this._redrawCanvas()
-      this._drawSelection()
+      this._redrawCanvas();
+      this._drawSelection();
     },
 
-    _valueChange: function (newValue, oldValue) {
-      this._setImmediateValue(newValue)
+    // Reacts to change in value
+    _valueChange: function (newValue) {
+      this._setImmediateValue(newValue);
     },
 
-    // Clear selection overdraw
+    // Clear the rendered selection
     _clearSelection: function () {
-      throw new Error('abstract')
+      throw new Error('abstract');
     },
 
-    _immediateValueChange: function (newValue, oldValue) {
-      this._clearSelection()
-      this._drawSelection()
+    // Reacts to change in immediate value by clearing then drawing the current selection
+    _immediateValueChange: function () {
+      this._clearSelection();
+      this._drawSelection();
     },
 
+    /**
+     * Determines the value from the input coordinates (relative to the canvas)
+     *
+     * @param {number} x
+     * @param {number} y
+     * @return {*} the calculated value
+     */
     _computeValue: function (x, y) {
-      throw new Error('abstract')
+      throw new Error('abstract');
     },
 
+    // tap listener on the canvas, forwards tap coordinates to #_computeValue
+    _onTapCanvas: function (event) {
+      var sourceEvent = event.detail.sourceEvent,
+          value = this._computeValue(sourceEvent.offsetX, sourceEvent.offsetY)
+      if (value !== undefined)
+        this.value = value
+    },
+
+    /*
+     * Mouse move listener on the canvas.
+     * Forwards coordinates to #_computeValue and sets the immediateValue if the computed value is defined and changed.
+     */
     _onMouseMoveCanvas: function (event) {
       var value = this._computeValue(event.offsetX, event.offsetY)
       if (value !== undefined && value != this.immediateValue) {
@@ -75,13 +107,8 @@
       }
     },
 
-    _onClickCanvas: function (event) {
-      var value = this._computeValue(event.offsetX, event.offsetY)
-      if (value !== undefined)
-        this.value = value
-    },
-
-    _onMouseOutCanvas: function (event) {
+    // mouse out listener on the canvas, resets the immediate value if changed from value
+    _onMouseOutCanvas: function () {
       if (this.immediateValue != this.value)
         this._setImmediateValue(this.value)
     }

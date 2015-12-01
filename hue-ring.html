@@ -4,195 +4,192 @@
 <link rel="import" href="ImmediateCanvasBehavior.html">
 
 <dom-module id="hue-ring">
-
   <template>
     <canvas id="canvas"
-            on-click="_onClickCanvas"
+            on-tap="_onTapCanvas"
             on-mousemove="_onMouseMoveCanvas"
             on-mouseout="_onMouseOutCanvas"></canvas>
   </template>
 
-</dom-module>
+  <script>
+    var twoPi = 2 * Math.PI
 
-<script>
+    /**
+     * Gradient ring representing HSV hue
+     */
+    Polymer({
+      is: 'hue-ring',
 
-  var twoPi = 2 * Math.PI
+      behaviors: [ColorHelperBehavior, ImmediateCanvasBehavior],
 
-  /**
-   * Ring gradient representing HSV hue
-   */
-  Polymer({
+      properties: {
+        /**
+         * Outer radius of the ring.
+         *
+         * The inner radius is half this value.
+         */
+        radius: {
+          type: Number,
+          value: 64,
+          observer: '_radiusChange',
+          reflectToAttribute: true
+        }
+      },
 
-    is: 'hue-ring',
+      ready: function () {
+        // Set default hue (declared in ImmediateCanvasBehavior) if not defined
+        if (!this.value)
+          this.value = 0
+      },
 
-    behaviors: [ColorHelperBehavior, ImmediateCanvasBehavior],
-
-    properties: {
-      /**
-       * Outer radius of the ring.
-       *
-       * The inner radius will be half this value.
-       */
-      radius: {
-        type: Number,
-        value: 64,
-        observer: '_radiusChange',
-        reflectToAttribute: true
+      // Reacts to change in radius
+      _radiusChange: function () {
+        this.innerRadius = 0
+        this._redraw()
       },
 
       /**
-       * The background color (hex format) of the box containing the ring.
-       *
-       * Set actual colors not transparent.
+       * @return {number} angle in radians between [0,2*PI]
        */
-      backgroundColor: {
-        type: String,
-        value: '#fff',
-        reflectToAttribute: true,
-        observer: '_redrawCanvas'
-      }
-    },
+      _getAngle: function (x, y) {
+        var angle = Math.atan2(y, x)
+        if (angle < 0)
+          angle += twoPi
+        return angle
+      },
 
-    ready: function () {
-      // Set default
-      this.value = 0
-    },
+      // Override Redraws the hue ring if the radius has change since last draw
+      _redrawCanvas: function () {
+        // This is getting called more than a few times, ignore when radius has not changed
+        if (this.radius == this.lastRadiusDrawn)
+          return
+        this.lastRadiusDrawn = this.radius;
 
-    _radiusChange: function (newValue, oldValue) {
-      this.innerRadius = 0
-      this._redraw()
-    },
+        var radius = this.radius
 
-    _getAngle: function (x, y) {
-      var angle = Math.atan2(y, x)
-      if (angle < 0)
-        angle += twoPi
-      return angle
-    },
+        if (!this.innerRadius)
+          this.innerRadius = radius / 2
 
-    _redrawCanvas: function () {
-      var radius = this.radius
+        var innerRadius = this.innerRadius,
+            diameter = radius * 2,
+            canvas = this.$.canvas,
+            context = canvas.getContext('2d')
 
-      if (!this.innerRadius)
-        this.innerRadius = radius / 2
+        // Add one to diameter so the center cuts the canvas into even halves
+        var length = diameter + 1,
+            innerRadiusSquared = innerRadius * innerRadius,
+            radiusSquared = radius * radius,
 
-      var innerRadius = this.innerRadius,
-          diameter = radius * 2,
-          canvas = this.$.canvas,
-          context = canvas.getContext('2d')
+            image = new Image(length, length);
+        canvas.width = length
+        canvas.height = length
+        context.drawImage(image, 0, 0)
 
-      canvas.width = diameter
-      canvas.height = diameter
+        /*
+         * Creates the data array w/ length and height properties
+         * rather than only a new Uint8ClampedArray(lengthSquared * 4)
+         */
+        var imageData = context.getImageData(0, 0, length, length),
+            colorData = imageData.data,
 
-      // Add one to diameter so the center cuts the canvas into even halves
-      var length = diameter + 1,
-          innerRadiusSquared = innerRadius * innerRadius,
-          radiusSquared = radius * radius,
-      /*
-       * Creates the data array w/ length and height properties
-       * rather than only a new Uint8ClampedArray(lengthSquared * 4)
-       */
-          imageData = context.createImageData(length, length),
-          colorData = imageData.data,
+        // Each pixel has four color components
+            length4 = length * 4
+        // Iterate along columns
+        for (var y = 0; y < length; y++) {
+          var p = y * length4
+          // Iterate along rows
+          for (var x = 0; x < length; x++) {
+            var rX = x - radius,
+                rY = radius - y,
+                rSquared = rX * rX + rY * rY
 
-      // Each pixel has four color components
-          length4 = length * 4,
+            // Inside and outside the ring, must set to white so redrawing with image won't have artifacts
+            if (rSquared < innerRadiusSquared ||
+                rSquared >= radiusSquared) {
+              colorData[p + 3] = 0
+            }
+            else {
+              var angle = this._getAngle(rX, rY),
+                  rgb = this.hsvToRgb255({h: angle, s: 1, v: 1})
 
-          backgroundColor = this.backgroundColor
-      if (!backgroundColor)
-        backgroundColor = '#fff'
-      var backgroundRgb = this.hexToRgb255(backgroundColor),
-          backgroundR = backgroundRgb.r,
-          backgroundG = backgroundRgb.g,
-          backgroundB = backgroundRgb.b
+              colorData[p] = rgb.r
+              colorData[p + 1] = rgb.g
+              colorData[p + 2] = rgb.b
+              colorData[p + 3] = 255
+            }
 
-      // Iterate along columns
-      for (var y = 0; y < length; y++) {
-        var p = y * length4
-        // Iterate along rows
-        for (var x = 0; x < length; x++) {
-          var rX = x - radius,
-              rY = radius - y,
-              rSquared = rX * rX + rY * rY
-
-          // Inside and outside the ring, must set to white so redrawing with image won't have artifacts
-          if (rSquared < innerRadiusSquared ||
-              rSquared >= radiusSquared) {
-            colorData[p] = backgroundR
-            colorData[p + 1] = backgroundG
-            colorData[p + 2] = backgroundB
+            p += 4
           }
-          else {
-            var angle = this._getAngle(rX, rY),
-                rgb = this.hsvToRgb255({h: angle, s: 1, v: 1})
-
-            colorData[p] = rgb.r
-            colorData[p + 1] = rgb.g
-            colorData[p + 2] = rgb.b
-          }
-          colorData[p + 3] = 255
-
-          p += 4
         }
+
+        context.putImageData(imageData, 0, 0)
+
+        var canvasImage = new Image()
+        canvasImage.src = canvas.toDataURL()
+        this.canvasImage = canvasImage
+      },
+
+      /**
+       * Override
+       *
+       * @param {number} x
+       * @param {number} y
+       * @returns {number|undefined} hue (in radians) given the x and y position on the last rendered hue ring or
+       * undefined if x and y are 0
+       */
+      _computeValue: function (x, y) {
+        if (!(x || y))
+          return undefined
+
+        var radius = this.radius,
+            rX = x - radius,
+            rY = radius - y
+        return this._getAngle(rX, rY)
+      },
+
+      // Override Renders UI showing selection
+      _drawSelection: function () {
+        // Don't draw if not ready
+        if (!this.selector)
+          return
+
+        var radius = this.radius,
+            innerRadius = this.innerRadius,
+            context = this.$.canvas.getContext('2d'),
+            radius1 = radius + 1,
+            value = this.immediateValue
+
+        context.save();
+        context.beginPath()
+        context.strokeStyle = this.selector.strokeStyle;
+        context.lineWidth = this.selector.lineWidth;
+        context.translate(radius1, radius1);
+        context.rotate(-value);
+        context.moveTo(innerRadius, 0);
+        context.lineTo(radius, 0);
+        context.stroke();
+        context.restore();
+
+        this.lastDrawnValue = value
+      },
+
+      // Override Clears the UI of selection
+      _clearSelection: function () {
+        if (!this.canvasImage)
+          return
+
+        var canvasImage = this.canvasImage,
+            canvas = this.$.canvas,
+            context = canvas.getContext('2d')
+
+        context.save();
+
+        // todo Be more efficient and only redraw the last selection, clip to surrounding rect
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(canvasImage, 0, 0)
+
+        context.restore();
       }
-
-      context.putImageData(imageData, 0, 0)
-
-      var canvasImage = new Image()
-      canvasImage.src = canvas.toDataURL()
-      this.canvasImage = canvasImage
-    },
-
-    _computeValue: function (x, y) {
-      if (!(x || y))
-        return undefined
-
-      var radius = this.radius,
-          rX = x - radius,
-          rY = radius - y
-      return this._getAngle(rX, rY)
-    },
-
-    _drawSelection: function () {
-      // Don't draw if not ready
-      if (!this.selector)
-        return
-
-      var radius = this.radius,
-          innerRadius = this.innerRadius,
-          context = this.$.canvas.getContext('2d'),
-          radius1 = radius + 1,
-          value = this.immediateValue
-
-      context.save();
-      context.beginPath()
-      context.strokeStyle = this.selector.strokeStyle;
-      context.lineWidth = this.selector.lineWidth;
-      context.translate(radius1, radius1);
-      context.rotate(-value);
-      context.moveTo(innerRadius, 0);
-      context.lineTo(radius, 0);
-      context.stroke();
-      context.restore();
-
-      this.lastDrawnValue = value
-    },
-
-    _clearSelection: function () {
-      if (!this.canvasImage)
-        return
-
-      var canvasImage = this.canvasImage,
-          context = this.$.canvas.getContext('2d')
-
-      context.save();
-
-      // todo Be more efficient and only redraw the last selection (if too difficult, clip to quadrant/half)
-      context.drawImage(canvasImage, 0, 0)
-
-      context.restore();
-    }
-
-  })
-
-</script>
+    })
+  </script>
+</dom-module>

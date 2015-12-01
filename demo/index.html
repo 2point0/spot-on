@@ -5,11 +5,16 @@
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
   <title>spot-on Demo</title>
   <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../iron-flex-layout/classes/iron-flex-layout.html">
   <link rel="import" href="../spot-on.html">
   <style>
     .container {
       margin: 0 auto;
       max-width: 1200px;
+    }
+
+    #grid > *:not(:first-child) {
+      margin-left: 16px;
     }
   </style>
 </head>
@@ -18,18 +23,25 @@
 <div class="container">
   <p>An example of <code>&lt;spot-on&gt;</code>:</p>
 
-  <h3>Element is set and sized on bind (inspect code)</h3>
-  <template id="t" is="dom-bind">
-    <style>
-      #spotOn {
-        width: 300px
-      }
-    </style>
-    <spot-on id="spotOn" ring-background="#fafafa"></spot-on>
-  </template>
+  <div id="grid" class="horizontal layout">
+    <div>
+      <h3>Element is set and sized on bind (inspect code)</h3>
+      <template id="t" is="dom-bind">
+        <style>
+          #spotOn {
+            width: 300px
+          }
+        </style>
+        <spot-on id="spotOn"></spot-on>
+      </template>
+    </div>
 
-  <h3>Text input enabled (at bottom)</h3>
-  <spot-on ring-background="#fafafa" show-text></spot-on>
+    <!--todo Load and hover over saturation bar, swatch color will be off-->
+    <div>
+      <h3>Text input/output (below)</h3>
+      <spot-on show-text></spot-on>
+    </div>
+  </div>
 </div>
 
 </body>

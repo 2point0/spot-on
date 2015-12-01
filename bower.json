@@ -2,13 +2,13 @@
   "name": "spot-on",
   "version": "1.0.0",
   "authors": [
-    "qui <qui@qui.qui>"
+    "qui <qui.after@gmail.com>"
   ],
-  "description": "An element providing a solution to no problem in particular.",
+  "description": "HSV picker.",
   "keywords": [
     "web-component",
     "polymer",
-    "seed"
+    "color"
   ],
   "main": "spot-on.html",
   "license": "http://polymer.github.io/LICENSE.txt",
